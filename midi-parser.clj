@@ -13,34 +13,33 @@
 (def key-names '("C" "C#" "D" "D#" "E" "F" "F#" "G" "G#" "A" "A#" "B"))
 
 (defn parse-midi-file [filepath]
+  "Given a midi file, outputs a human-readable collection of parsed event data"
   (let [sequence (-> (io/file filepath) MidiSystem/getSequence)
         tracks (.getTracks sequence)
-        res (.getResolution sequence)
-        events (get-all-events tracks)
-        count (count tracks)]
+        events (get-all-events tracks)]
     events))
 
 (defn get-all-events
-  "Takes an array of tracks and returns a coll of parsed events per track",
+  "Given an array of tracks, returns a collection of parsed events per track"
   [tracks]
   (map get-track-events tracks))
 
 (defn get-track-events
-  "Takes a track and returns a coll of its parsed events"
+  "Given a track, returns a collection of its parsed events"
   [track]
   (let [size (.size track)
         index (take size (iterate inc 0))]
     (map #(parse-event (.get track %)) index)))
 
 (defn parse-event
-  "Takes an event, returns the event data parsed"
+  "Given an event, returns the parsed event data if the event does not represet metadata"
   [event]
   (let [message (.getMessage event)]
     (if (instance? ShortMessage message)
       (parse-message (cast ShortMessage message) event))))
 
 (defn parse-message
-  "Takes an event and its ShortMessage"
+  "Given an event and its ShortMessage, parses useful information into human-readable format"
   [message, event]
   (let [tick (.getTick event)
         command (get command-map (.getCommand message))
