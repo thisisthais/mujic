@@ -1,0 +1,5 @@
+*.mid
+*.midi
+.DS_Store
+.DS_Store?
+midi_thoughts
