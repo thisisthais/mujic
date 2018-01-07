@@ -42,18 +42,19 @@
         index (range size)]
     (map #(parse-event (.get track %)) index)))
 
-(defn get-all-events
+(defn parse-tracks
   "Given an array of tracks, returns a collection of parsed events per track"
   [tracks]
   (map get-track-events tracks))
 
+;; note that i think this only works for 1-track files not counting the metadata track
 (defn parse-midi-file [filepath]
   "Given a midi file, outputs a human-readable collection of parsed event data"
   (let [sequence (MidiSystem/getSequence (io/file filepath))
         tracks (.getTracks sequence)
         resolution (.getResolution sequence) ;; gonna need later
-        events (get-all-events tracks)]
-    events))
+        parsed-tracks (parse-tracks tracks)]
+    (remove nil? (first (rest parsed-tracks)))))
 
 (defn is-note
   [parsed-event]
@@ -72,9 +73,15 @@
   [parsed-event]
   (get parsed-event :note))
 
+(defn create-chord-mapping
+  [[tick event]]
+  [key (set (mapv get-note event))])
+
 (defn group-by-tick
   [parsed-events]
-  (->> (group-by get-tick parsed-events)
+  (->> (filter-notes parsed-events)
+       (group-by get-tick)
+       (seq)
        (map (fn [[key value]]
               [key (set (mapv get-note value))]))
        (into {})))
