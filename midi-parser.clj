@@ -54,3 +54,27 @@
         resolution (.getResolution sequence) ;; gonna need later
         events (get-all-events tracks)]
     events))
+
+(defn is-note
+  [parsed-event]
+  (let [command (get parsed-event :command)]
+    (or (= command :note-on) (= command :note-off))))
+
+(defn filter-notes
+  [parsed-events]
+  (filter is-note parsed-events))
+
+(defn get-tick
+  [parsed-event]
+  (get parsed-event :tick))
+
+(defn get-note
+  [parsed-event]
+  (get parsed-event :note))
+
+(defn group-by-tick
+  [parsed-events]
+  (->> (group-by get-tick parsed-events)
+       (map (fn [[key value]]
+              [key (mapv get-note value)]))
+       (into {})))
