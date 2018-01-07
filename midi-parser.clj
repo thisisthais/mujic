@@ -76,5 +76,5 @@
   [parsed-events]
   (->> (group-by get-tick parsed-events)
        (map (fn [[key value]]
-              [key (mapv get-note value)]))
+              [key (set (mapv get-note value))]))
        (into {})))
