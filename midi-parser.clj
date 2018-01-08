@@ -69,15 +69,13 @@
 
 (defn get-tick
   [parsed-event]
-  (get parsed-event :tick))
+  (:tick parsed-event))
 
 (defn get-note
   [acc parsed-event]
   (let [command (:command parsed-event)
         note (:note parsed-event)]
-    (update acc command #(or % note))))
-
-(get-note {} {:tick 79872, :command :note-off, :channel 0, :note "C5", :velocity 0})
+    (update acc command #(if % (conj % note) #{note}))))
 
 (defn create-chord-mapping
   "Returns a map: key is the tick, value is a set of note events that happened at this tick"
@@ -90,39 +88,17 @@
        (group-by get-tick)
        (reduce-kv create-chord-mapping {})
        (into (sorted-map))))
+(group-by-tick parsed)
 
-(group-by-tick psatie)
-
-(defn is-note-off
-  "Adds note if was turned off to accumulator"
-  [acc [note command]]
-  (if (= :note-off command)
-    (conj acc note)
-    acc))
-
-(defn is-note-on
-  "Adds note if was turned on to accumulator"
-  [acc [note command]]
-  (if (= :note-on command)
-    (conj acc note)
-    acc))
-
-(defn note-offs
-  "Associates a tick with notes turned off at it"
-  [acc tick note-events]
-  (assoc acc tick (reduce is-note-off [] note-events)))
-
-(defn note-ons
-  "Associates a tick with notes turned on at it"
-  [acc tick note-events]
-  (assoc acc tick (reduce is-note-on [] note-events)))
-
-(defn get-notes-by-type
-  "Returns a map: key is tick, value is notes that match the command arg"
-  [notes-by-ticks-map command-type]
-  (if (= :note-on command-type)
-    (reduce-kv note-ons {} notes-by-ticks-map)
-    (reduce-kv note-offs {} notes-by-ticks-map)))
+(defn get-note-by-command
+  [grouped-notes-by-tick command-type]
+  (reduce
+    (fn [acc [tick notes-map]]
+      (let [off-notes (command-type notes-map)]
+        (update acc tick #(if % (conj % off-notes) off-notes))))
+    {}
+    grouped-notes-by-tick))
+(get-note-offs grouped :note-off)
 
 ;;(defn get-next-note-off
   ;;[note note-offs])
