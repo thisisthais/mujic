@@ -57,11 +57,13 @@
     (remove nil? (first (rest parsed-tracks)))))
 
 (defn is-note
+  "Returns true if this event is note on or note off event"
   [parsed-event]
   (let [command (get parsed-event :command)]
     (or (= command :note-on) (= command :note-off))))
 
 (defn filter-notes
+  "Returns only the note-relevant events"
   [parsed-events]
   (filter is-note parsed-events))
 
@@ -71,17 +73,19 @@
 
 (defn get-note
   [parsed-event]
-  (get parsed-event :note))
+  (assoc {} (get parsed-event :note) (get parsed-event :command)))
 
 (defn create-chord-mapping
+  "Returns a map: key is the tick, value is a set of note events that happened at this tick"
   [[tick event]]
-  [key (set (mapv get-note event))])
+  [tick (set (mapv get-note event))])
 
 (defn group-by-tick
   [parsed-events]
   (->> (filter-notes parsed-events)
        (group-by get-tick)
        (seq)
-       (map (fn [[key value]]
-              [key (set (mapv get-note value))]))
-       (into {})))
+       (map create-chord-mapping)
+       (into (sorted-map))))
+
+;; TODO pair on-off event times per note
