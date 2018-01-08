@@ -72,20 +72,42 @@
   (get parsed-event :tick))
 
 (defn get-note
-  [parsed-event]
-  (assoc {} (get parsed-event :note) (get parsed-event :command)))
+  [acc parsed-event]
+  (assoc acc (get parsed-event :note) (get parsed-event :command)))
 
 (defn create-chord-mapping
   "Returns a map: key is the tick, value is a set of note events that happened at this tick"
-  [[tick event]]
-  [tick (set (mapv get-note event))])
+  [acc tick events]
+  (assoc acc tick (reduce get-note {} events)))
 
 (defn group-by-tick
   [parsed-events]
   (->> (filter-notes parsed-events)
        (group-by get-tick)
-       (seq)
-       (map create-chord-mapping)
-       (into (sorted-map))))
+       (reduce-kv create-chord-mapping {})))
+
+(defn is-note-on
+  [note-event]
+  (= :note-on (first (vals note-event))))
+
+(defn is-note-off
+  [note-event]
+  (= :note-off (first (vals note-event))))
+
+(defn get-note-on-notes
+  [note-events-set]
+  (filter is-note-on note-events-set))
+
+(defn get-note-off-notes
+  [note-events-set]
+  (filter is-note-off note-events-set))
+
+(defn get-next-note-off
+  [note note-offs])
 
 ;; TODO pair on-off event times per note
+;; per tick, per note-on event, find succeeding note-off's tick
+(defn pair-on-off-ticks
+  "Returns a map: key is the tick, value is {note -> tick for off event}"
+  [grouped-note-events]
+  ())
