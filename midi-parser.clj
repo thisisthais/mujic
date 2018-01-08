@@ -86,24 +86,39 @@
        (group-by get-tick)
        (reduce-kv create-chord-mapping {})))
 
-(defn is-note-on
-  [note-event]
-  (= :note-on (first (vals note-event))))
-
 (defn is-note-off
-  [note-event]
-  (= :note-off (first (vals note-event))))
+  "Adds note if was turned off to accumulator"
+  [acc [note command]]
+  (if (= :note-off command)
+    (conj acc note)
+    acc))
 
-(defn get-note-on-notes
-  [note-events-set]
-  (filter is-note-on note-events-set))
+(defn is-note-on
+  "Adds note if was turned on to accumulator"
+  [acc [note command]]
+  (if (= :note-on command)
+    (conj acc note)
+    acc))
 
-(defn get-note-off-notes
-  [note-events-set]
-  (filter is-note-off note-events-set))
+(defn note-offs
+  "Associates a tick with notes turned off at it"
+  [acc tick note-events]
+  (assoc acc tick (reduce is-note-off [] note-events)))
 
-(defn get-next-note-off
-  [note note-offs])
+(defn note-ons
+  "Associates a tick with notes turned on at it"
+  [acc tick note-events]
+  (assoc acc tick (reduce is-note-on [] note-events)))
+
+(defn get-notes-by-type
+  "Returns a map: key is tick, value is notes that match the command arg"
+  [notes-by-ticks-map command-type]
+  (if (= :note-on command-type)
+    (reduce-kv note-ons {} notes-by-ticks-map)
+    (reduce-kv note-offs {} notes-by-ticks-map)))
+
+;;(defn get-next-note-off
+  ;;[note note-offs])
 
 ;; TODO pair on-off event times per note
 ;; per tick, per note-on event, find succeeding note-off's tick
