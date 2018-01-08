@@ -73,7 +73,11 @@
 
 (defn get-note
   [acc parsed-event]
-  (assoc acc (get parsed-event :note) (get parsed-event :command)))
+  (let [command (:command parsed-event)
+        note (:note parsed-event)]
+    (update acc command #(or % note))))
+
+(get-note {} {:tick 79872, :command :note-off, :channel 0, :note "C5", :velocity 0})
 
 (defn create-chord-mapping
   "Returns a map: key is the tick, value is a set of note events that happened at this tick"
@@ -84,7 +88,10 @@
   [parsed-events]
   (->> (filter-notes parsed-events)
        (group-by get-tick)
-       (reduce-kv create-chord-mapping {})))
+       (reduce-kv create-chord-mapping {})
+       (into (sorted-map))))
+
+(group-by-tick psatie)
 
 (defn is-note-off
   "Adds note if was turned off to accumulator"
