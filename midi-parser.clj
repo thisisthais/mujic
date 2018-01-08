@@ -67,11 +67,7 @@
   [parsed-events]
   (filter is-note parsed-events))
 
-(defn get-tick
-  [parsed-event]
-  (:tick parsed-event))
-
-(defn get-note
+(defn get-notes-sets
   [acc parsed-event]
   (let [command (:command parsed-event)
         note (:note parsed-event)]
@@ -80,17 +76,18 @@
 (defn create-chord-mapping
   "Returns a map: key is the tick, value is a set of note events that happened at this tick"
   [acc tick events]
-  (assoc acc tick (reduce get-note {} events)))
+  (assoc acc tick (reduce get-notes-sets {} events)))
 
 (defn group-by-tick
   [parsed-events]
   (->> (filter-notes parsed-events)
-       (group-by get-tick)
+       (group-by :tick)
        (reduce-kv create-chord-mapping {})
        (into (sorted-map))))
 (group-by-tick parsed)
 
 (defn get-note-by-command
+  "Returns a map: key is tick, value is set of notes that match given command at that tick"
   [grouped-notes-by-tick command-type]
   (reduce
     (fn [acc [tick notes-map]]
@@ -99,6 +96,14 @@
     {}
     grouped-notes-by-tick))
 (get-note-offs grouped :note-off)
+
+(defn get-first-note-tick
+  "Given a note and ordered map of ticks to notes set, returns the first tick the note appears in"
+  [note off-notes-map]
+  (key (first (filter
+                (fn [[tick notes-set]]
+                  (contains? notes-set note))
+                off-notes-map))))
 
 ;;(defn get-next-note-off
   ;;[note note-offs])
