@@ -49,17 +49,6 @@
   [tracks]
   (map get-track-events tracks))
 
-(defn is-note
-  "Returns true if this event is note on or note off event"
-  [parsed-event]
-  (let [command (get parsed-event :command)]
-    (or (= command :note-on) (= command :note-off))))
-
-(defn filter-notes
-  "Returns only the note-relevant events"
-  [parsed-events]
-  (filter is-note parsed-events))
-
 ;; note that i think this only works for 1-track files not counting the metadata track
 (defn parse-midi-file [filepath]
   "Given a midi file, outputs a human-readable collection of parsed event data"
@@ -71,14 +60,12 @@
 
 (defn find-off-tick
   "Given a note and a sequence, returns the tick at which that note does note-off"
-  [on-note notes-sequence on-tick]
-  (some (fn [{:keys [tick note command]}]
-          (if (> on-tick tick)
-            (throw (IllegalStateException. (str "searching for end of " note " after " on-tick " but found " tick)))
-            (and (= command :note-off
-                        (= note on-note)
-                        tick))))
-   notes-sequence))
+  [note notes-sequence on-tick]
+  (->> notes-sequence
+       (filter #(> (:tick %) on-tick))
+       (some #(and (= (:command %) :note-off)
+                   (= (:note %) note)
+                   (:tick %)))))
 
 (defn assoc-end-tick
   "Associates a map of note to duration to a tick"
@@ -103,23 +90,21 @@
 (defn get-note-duration
   [{:keys [note tick]} later-events]
   (let [duration (- (find-off-tick note later-events tick) tick)]
-    (if (< duration 0)
-      (throw (IllegalStateException. (str "cannot be " duration " at " tick " note " note)))
-      [note duration])))
+    [note duration]))
 
-(defn get-notes-at
-  [tick events]
-  (->> events
-    (filter #(= (:tick %) tick)) ;; get same time events
-    (map #(get-note-duration % (filter #(> (:tick %) tick) events))) ;; filter for later events
-    (set)))
+(defn get-notes-and-durations
+  [tick now-events later-events]
+  (->> now-events
+      (map #(get-note-duration % later-events)) ;; filter for later events
+      (set)))
 
 (defn assoc-note-to-successive-notes
-  [outer-map on-tick note later-events]
-  (let [off-tick (find-off-tick note later-events on-tick)
+  [outer-map on-tick note events]
+  (let [off-tick (find-off-tick note events on-tick)
+        later-events (filter #(> (:tick %) off-tick) events)
+        now-events (filter #(= (:tick %) off-tick) events)
         duration (- off-tick on-tick)
-        _ (prn :ok)
-        next-notes-set (get-notes-at off-tick (drop-while #(< (:tick %) tick) events))] ;; drop earlier events
+        next-notes-set (get-notes-and-durations off-tick now-events later-events)] ;; drop earlier events
     (update-in outer-map [note duration] #(set/union % next-notes-set))))
 
 (defn notes->successive-notes
