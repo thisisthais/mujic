@@ -75,11 +75,16 @@
               (:tick %))
    notes-sequence))
 
-(defn pair-on-off-notes
+(defn assoc-duration
+  "Associates a map of note to duration to a tick"
+  [acc tick note events]
+  ;; assoc-in creates a nested map, outer key is tick inner key is note
+  (assoc-in acc [tick note] (- (find-off-tick note events) tick)))
+
+(defn pair-notes-to-duration
   "Loops through list of events. When it finds a note-on event, looks through the
   rest of the list to find its matching note-off event. Returns a map, keyed by tick
-  whole values are a map of notes that went on at that tick and the tick at which
-  they went off."
+  whole values are a map of notes that went on at that tick and its duration."
   [ordered-events]
   (loop [acc {}
          ;; double deconstruct 1) first item & rest, 2) specific keys of first item
@@ -88,7 +93,5 @@
       ;; two base cases, empty list and not a note-on event
       (empty? events) acc
       (not= command :note-on) (recur acc events) ;; this automatically filters non-note events
-      :else (recur
-              ;; assoc-in creates a nested map, outer key is tick inner key is note
-              (assoc-in acc [tick note] (- (find-off-tick note events) tick)) events))))
+      :else (recur (assoc-duration acc tick note events) events))))
 ;;(pair-on-off-notes (parse-midi-file "/Users/thaisc/mujic/satie.mid"))
