@@ -5,5 +5,5 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (let [parsed (p/parse-midi-file "/Users/thaisc/mujic/satie.mid")]
+  (let [parsed (p/parse-midi-file "/Users/thaisc/old-mujic/satie.mid")]
    (p/notes->successive-notes (sort-by :tick parsed))))

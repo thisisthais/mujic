@@ -110,19 +110,16 @@
 (defn get-notes-at
   [tick events]
   (->> events
-       (drop-while #(< (:tick %) tick))
-       (split-with #(= (:tick %) tick))
-       (map #(get-note-duration % events))
-       (set)))
+    (filter #(= (:tick %) tick)) ;; get same time events
+    (map #(get-note-duration % (filter #(> (:tick %) tick) events))) ;; filter for later events
+    (set)))
 
 (defn assoc-note-to-successive-notes
   [outer-map on-tick note later-events]
-  (prn :args outer-map on-tick note (take 2 later-events))
   (let [off-tick (find-off-tick note later-events on-tick)
         duration (- off-tick on-tick)
         _ (prn :ok)
-        next-notes-set (get-notes-at off-tick later-events)]
-    (prn :locals off-tick duration next-notes-set)
+        next-notes-set (get-notes-at off-tick (drop-while #(< (:tick %) tick) events))] ;; drop earlier events
     (update-in outer-map [note duration] #(set/union % next-notes-set))))
 
 (defn notes->successive-notes
@@ -133,6 +130,3 @@
       (empty? events) outer-map
       (not= command :note-on) (recur outer-map events)
       :else (recur (assoc-note-to-successive-notes outer-map tick note events) events))))
-; (notes->successive-notes (sort-by :tick psatie))
-; (filter #(= (:note %) "C6") (sort-by :tick psatie))
-; (- 768 382)
