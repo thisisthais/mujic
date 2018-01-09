@@ -67,50 +67,28 @@
   [parsed-events]
   (filter is-note parsed-events))
 
-(defn get-notes-sets
-  [acc parsed-event]
-  (let [command (:command parsed-event)
-        note (:note parsed-event)]
-    (update acc command #(if % (conj % note) #{note}))))
+(defn find-off-tick
+  "Given a note and a sequence, returns the tick at which that note does note-off"
+  [note notes-sequence]
+  (some #(and (= (:command %) :note-off)
+              (= (:note %) note)
+              (:tick %))
+   notes-sequence))
 
-(defn create-chord-mapping
-  "Returns a map: key is the tick, value is a set of note events that happened at this tick"
-  [acc tick events]
-  (assoc acc tick (reduce get-notes-sets {} events)))
-
-(defn group-by-tick
-  [parsed-events]
-  (->> (filter-notes parsed-events)
-       (group-by :tick)
-       (reduce-kv create-chord-mapping {})
-       (into (sorted-map))))
-(group-by-tick parsed)
-
-(defn get-note-by-command
-  "Returns a map: key is tick, value is set of notes that match given command at that tick"
-  [grouped-notes-by-tick command-type]
-  (reduce
-    (fn [acc [tick notes-map]]
-      (let [off-notes (command-type notes-map)]
-        (update acc tick #(if % (conj % off-notes) off-notes))))
-    {}
-    grouped-notes-by-tick))
-(get-note-offs grouped :note-off)
-
-(defn get-first-note-tick
-  "Given a note and ordered map of ticks to notes set, returns the first tick the note appears in"
-  [note off-notes-map]
-  (key (first (filter
-                (fn [[tick notes-set]]
-                  (contains? notes-set note))
-                off-notes-map))))
-
-;;(defn get-next-note-off
-  ;;[note note-offs])
-
-;; TODO pair on-off event times per note
-;; per tick, per note-on event, find succeeding note-off's tick
-(defn pair-on-off-ticks
-  "Returns a map: key is the tick, value is {note -> tick for off event}"
-  [grouped-note-events]
-  ())
+(defn pair-on-off-notes
+  "Loops through list of events. When it finds a note-on event, looks through the
+  rest of the list to find its matching note-off event. Returns a map, keyed by tick
+  whole values are a map of notes that went on at that tick and the tick at which
+  they went off."
+  [ordered-events]
+  (loop [acc {}
+         ;; double deconstruct 1) first item & rest, 2) specific keys of first item
+         [{:keys [tick command note]} & events] ordered-events]
+    (cond
+      ;; two base cases, empty list and not a note-on event
+      (empty? events) acc
+      (not= command :note-on) (recur acc events) ;; this automatically filters non-note events
+      :else (recur
+              ;; assoc-in creates a nested map, outer key is tick inner key is note
+              (assoc-in acc [tick note] (find-off-tick note events)) events))))
+;;(pair-on-off-notes (parse-midi-file "/Users/thaisc/mujic/satie.mid"))
