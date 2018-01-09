@@ -1,4 +1,5 @@
-(require '[clojure.java.io :as io])
+(require '[clojure.java.io :as io
+           clojure.set :as set])
 (import '(javax.sound.midi MidiSystem Sequence Track MidiEvent MidiMessage ShortMessage))
 
 (def command-map
@@ -81,7 +82,7 @@
   ;; assoc-in creates a nested map, outer key is tick inner key is note
   (assoc-in acc [tick note] (find-off-tick note events)))
 
-(defn pair-notes-to-duration
+(defn pair-notes-to-end-tick
   "Loops through list of events. When it finds a note-on event, looks through the
   rest of the list to find its matching note-off event. Returns a map, keyed by tick
   whole values are a map of notes that went on at that tick and its duration."
@@ -95,14 +96,34 @@
       (not= command :note-on) (recur acc events) ;; this automatically filters non-note events
       :else (recur (assoc-end-tick acc tick note events) events))))
 
-(defn pull-successive-notes
-  [tick-to-note-off]
-  (reduce
-    (fn [acc [tick note-offs-map]]
-      (let [note (key (first note-offs-map))
-            note-off-tick (val (first note-offs-map))
-            next-notes-set (get tick-to-note-off note-off-tick)
-            current-note-duration (- note-off-tick tick)]
-        (assoc-in acc [note current-note-duration] next-notes-set)))
-    {}
-    tick-to-note-off))
+(defn get-note-duration
+  [event later-events]
+  (let [tick (:tick event)
+        note (:note event)]
+    (hash-map note (- (find-off-tick note later-events) tick))))
+
+(defn get-notes-at
+  [tick events]
+  (->> (filter
+         #(and (= (:command %) :note-on)
+               (= (:tick %) tick))
+         events)
+       (map #(get-note-duration % events))
+       (set)))
+
+(defn assoc-note-to-successive-notes
+  [outer-map on-tick note later-events]
+  (let [off-tick (find-off-tick note later-events)
+        duration (- off-tick on-tick)
+        next-notes-set (get-notes-at off-tick later-events)]
+    (update-in outer-map [note duration] #(union % next-notes-set))))
+
+(defn map-notes-to-successive-notes
+  [ordered-events]
+  (loop [outer-map {}
+         [{:keys [tick command note]} & events] ordered-events]
+    (cond
+      (empty? events) outer-map
+      (not= command :note-on) (recur outer-map events)
+      :else (recur (assoc-note-to-successive-notes outer-map tick note events) events))))
+(map-notes-to-successive-notes parsed)
