@@ -1,6 +1,7 @@
-(require '[clojure.java.io :as io
-           clojure.set :as set])
-(import '(javax.sound.midi MidiSystem Sequence Track MidiEvent MidiMessage ShortMessage))
+(ns mujic2.midi-parser
+  (:require [clojure.java.io :as io]
+            [clojure.set :as set])
+  (:import (javax.sound.midi MidiSystem Sequence Track MidiEvent MidiMessage ShortMessage)))
 
 (def command-map
   {ShortMessage/CHANNEL_PRESSURE :channel-pressure
@@ -48,15 +49,6 @@
   [tracks]
   (map get-track-events tracks))
 
-;; note that i think this only works for 1-track files not counting the metadata track
-(defn parse-midi-file [filepath]
-  "Given a midi file, outputs a human-readable collection of parsed event data"
-  (let [sequence (MidiSystem/getSequence (io/file filepath))
-        tracks (.getTracks sequence)
-        resolution (.getResolution sequence) ;; gonna need later
-        parsed-tracks (parse-tracks tracks)]
-    (remove nil? (first (rest parsed-tracks)))))
-
 (defn is-note
   "Returns true if this event is note on or note off event"
   [parsed-event]
@@ -68,12 +60,24 @@
   [parsed-events]
   (filter is-note parsed-events))
 
+;; note that i think this only works for 1-track files not counting the metadata track
+(defn parse-midi-file [filepath]
+  "Given a midi file, outputs a human-readable collection of parsed event data"
+  (let [sequence (MidiSystem/getSequence (io/file filepath))
+        tracks (.getTracks sequence)
+        resolution (.getResolution sequence) ;; gonna need later
+        parsed-tracks (parse-tracks tracks)]
+    (filter-notes (remove nil? (first (rest parsed-tracks))))))
+
 (defn find-off-tick
   "Given a note and a sequence, returns the tick at which that note does note-off"
-  [note notes-sequence]
-  (some #(and (= (:command %) :note-off)
-              (= (:note %) note)
-              (:tick %))
+  [on-note notes-sequence on-tick]
+  (some (fn [{:keys [tick note command]}]
+          (if (> on-tick tick)
+            (throw (IllegalStateException. (str "searching for end of " note " after " on-tick " but found " tick)))
+            (and (= command :note-off
+                        (= note on-note)
+                        tick))))
    notes-sequence))
 
 (defn assoc-end-tick
@@ -97,28 +101,31 @@
       :else (recur (assoc-end-tick acc tick note events) events))))
 
 (defn get-note-duration
-  [event later-events]
-  (let [tick (:tick event)
-        note (:note event)]
-    (hash-map note (- (find-off-tick note later-events) tick))))
+  [{:keys [note tick]} later-events]
+  (let [duration (- (find-off-tick note later-events tick) tick)]
+    (if (< duration 0)
+      (throw (IllegalStateException. (str "cannot be " duration " at " tick " note " note)))
+      [note duration])))
 
 (defn get-notes-at
   [tick events]
-  (->> (filter
-         #(and (= (:command %) :note-on)
-               (= (:tick %) tick))
-         events)
+  (->> events
+       (drop-while #(< (:tick %) tick))
+       (split-with #(= (:tick %) tick))
        (map #(get-note-duration % events))
        (set)))
 
 (defn assoc-note-to-successive-notes
   [outer-map on-tick note later-events]
-  (let [off-tick (find-off-tick note later-events)
+  (prn :args outer-map on-tick note (take 2 later-events))
+  (let [off-tick (find-off-tick note later-events on-tick)
         duration (- off-tick on-tick)
+        _ (prn :ok)
         next-notes-set (get-notes-at off-tick later-events)]
-    (update-in outer-map [note duration] #(union % next-notes-set))))
+    (prn :locals off-tick duration next-notes-set)
+    (update-in outer-map [note duration] #(set/union % next-notes-set))))
 
-(defn map-notes-to-successive-notes
+(defn notes->successive-notes
   [ordered-events]
   (loop [outer-map {}
          [{:keys [tick command note]} & events] ordered-events]
@@ -126,4 +133,6 @@
       (empty? events) outer-map
       (not= command :note-on) (recur outer-map events)
       :else (recur (assoc-note-to-successive-notes outer-map tick note events) events))))
-(map-notes-to-successive-notes parsed)
+; (notes->successive-notes (sort-by :tick psatie))
+; (filter #(= (:note %) "C6") (sort-by :tick psatie))
+; (- 768 382)
