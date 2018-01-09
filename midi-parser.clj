@@ -90,5 +90,5 @@
       (not= command :note-on) (recur acc events) ;; this automatically filters non-note events
       :else (recur
               ;; assoc-in creates a nested map, outer key is tick inner key is note
-              (assoc-in acc [tick note] (find-off-tick note events)) events))))
+              (assoc-in acc [tick note] (- (find-off-tick note events) tick)) events))))
 ;;(pair-on-off-notes (parse-midi-file "/Users/thaisc/mujic/satie.mid"))
