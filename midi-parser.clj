@@ -99,11 +99,10 @@
   [tick-to-note-off]
   (reduce
     (fn [acc [tick note-offs-map]]
-      (let [note (key note-offs-map)
-            note-off-tick (val note-offs-map)
+      (let [note (key (first note-offs-map))
+            note-off-tick (val (first note-offs-map))
             next-notes-set (get tick-to-note-off note-off-tick)
             current-note-duration (- note-off-tick tick)]
-        (assoc acc (str note current-note-duration) next-notes-set)))
+        (assoc-in acc [note current-note-duration] next-notes-set)))
     {}
     tick-to-note-off))
-(pull-successive-notes (into (sorted-map) x))
