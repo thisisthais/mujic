@@ -49,6 +49,17 @@
   [tracks]
   (map get-track-events tracks))
 
+(defn is-note
+  "Returns true if this event is note on or note off event"
+  [parsed-event]
+  (let [command (get parsed-event :command)]
+    (or (= command :note-on) (= command :note-off))))
+
+(defn filter-notes
+  "Returns only the note-relevant events"
+  [parsed-events]
+  (filter is-note parsed-events))
+
 ;; note that i think this only works for 1-track files not counting the metadata track
 (defn parse-midi-file [filepath]
   "Given a midi file, outputs a human-readable collection of parsed event data"
@@ -60,9 +71,8 @@
 
 (defn find-off-tick
   "Given a note and a sequence, returns the tick at which that note does note-off"
-  [note notes-sequence on-tick]
-  (->> notes-sequence
-       (filter #(> (:tick %) on-tick))
+  [note later-events on-tick]
+  (->> later-events
        (some #(and (= (:command %) :note-off)
                    (= (:note %) note)
                    (:tick %)))))
@@ -94,17 +104,19 @@
 
 (defn get-notes-and-durations
   [tick now-events later-events]
-  (->> now-events
+  (let [_ (prn "getting next notes for " now-events)]
+    (->> now-events
+      (filter #(= (:command %) :note-on))
       (map #(get-note-duration % later-events)) ;; filter for later events
-      (set)))
+      (set))))
 
 (defn assoc-note-to-successive-notes
   [outer-map on-tick note events]
   (let [off-tick (find-off-tick note events on-tick)
-        later-events (filter #(> (:tick %) off-tick) events)
+        later-events (filter #(>= (:tick %) off-tick) events)
         now-events (filter #(= (:tick %) off-tick) events)
         duration (- off-tick on-tick)
-        next-notes-set (get-notes-and-durations off-tick now-events later-events)] ;; drop earlier events
+        next-notes-set (get-notes-and-durations off-tick now-events later-events)]
     (update-in outer-map [note duration] #(set/union % next-notes-set))))
 
 (defn notes->successive-notes
