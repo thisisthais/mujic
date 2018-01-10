@@ -1,11 +1,17 @@
 (ns mujic2.core
   (:gen-class)
-  (:require [mujic2.midi-parser :as parser
-             mujic2.markov-chain :as chain])
-  (:use [clojure.pprint]))
+  (:require [mujic2.midi-parser :as parser]
+            [mujic2.markov-chain :as chain]
+            [clojure.pprint :refer [pprint]]))
 
 (defn -main
-  "I don't do a whole lot ... yet."
+  "Parses a Satie piano MIDI file and generates a nested map for the use in a
+  markov chain. The map has nested keys, note and note duration. The value is
+  a set of all the note:duration tuples that immediatelly follow the prefix
+  note:duration in the song."
   [& args]
-  (let [parsed (parser/parse-midi-file "/Users/thaisc/mujic/satie.mid")]
-   (pprint (chain/notes->successive-notes (sort-by :tick parsed)))))
+
+  (->> (parser/parse-midi-file "/Users/thaisc/mujic/satie.mid")
+       (sort-by :tick)
+       chain/notes->successive-notes
+       pprint))

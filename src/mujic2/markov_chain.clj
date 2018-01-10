@@ -1,6 +1,7 @@
 (ns mujic2.markov-chain
   (:require [clojure.set :as set]))
 
+
 (defn find-off-tick
   "Given a note and a sequence, returns the tick at which that note does note-off"
   [note later-events]
@@ -9,17 +10,20 @@
                    (= (:note %) note)
                    (:tick %)))))
 
+
 (defn sub-and-round-up
   "Subtracts timestamps and rounds up to nearest multiple of 10"
   [off-tick on-tick]
   (int (* 10 (Math/ceil (/ (- off-tick on-tick) 10)))))
 
+
 (defn get-note-duration
-  "Given a destructured note-on event and the events at a tick after it, find the
-  notes duration"
-  [{:keys [note tick]} later-events]
-  (let [duration (sub-and-round-up (find-off-tick note later-events) tick)]
+  "Given a note-on event and the events at a tick after it, find the note's duration"
+  [note-on-event later-events]
+  (let [{:keys [note tick]} note-on-event
+        duration (sub-and-round-up (find-off-tick note later-events) tick)]
     [note duration]))
+
 
 (defn get-notes-and-durations
   "Given note events that happen at the same tick, filter the note-on events,
@@ -29,6 +33,7 @@
       (filter #(= (:command %) :note-on))
       (map #(get-note-duration % later-events)) ;; filter for later events
       (set)))
+
 
 (defn assoc-note-to-successive-notes
   "Processes the current note by determining its duration, fetching the notes that
@@ -41,6 +46,7 @@
         duration (sub-and-round-up off-tick on-tick)
         next-notes-set (get-notes-and-durations next-note-events later-events)]
     (update-in outer-map [note duration] #(set/union % next-notes-set))))
+
 
 (defn notes->successive-notes
   "Takes an list of midi events, ordered by ticks, and produces a map where the nested keys

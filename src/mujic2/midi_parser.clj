@@ -2,7 +2,8 @@
   (:require [clojure.java.io :as io])
   (:import (javax.sound.midi MidiSystem Sequence Track MidiEvent MidiMessage ShortMessage)))
 
-(def command-map
+
+(def command->keyword
   {ShortMessage/CHANNEL_PRESSURE :channel-pressure
    ShortMessage/CONTROL_CHANGE   :control-change
    ShortMessage/NOTE_OFF         :note-off
@@ -11,7 +12,9 @@
    ShortMessage/POLY_PRESSURE    :poly-pressure
    ShortMessage/PROGRAM_CHANGE   :program-change})
 
+
 (def key-names ["C" "C#" "D" "D#" "E" "F" "F#" "G" "G#" "A" "A#" "B"])
+
 
 (defn note-to-string
   "Given a midi note number, returns the note name."
@@ -20,50 +23,55 @@
         octave (quot num 12)]
     (str (nth key-names note) octave)))
 
+
 (defn parse-message
-  "Given an event and its ShortMessage, parses useful information into human-readable format"
-  [message, event]
+  "Given an event and its ShortMessage, creates a map of useful information
+  parsed into a human-readable format."
+  [event message]
   {:tick (.getTick event)
-   :command (get command-map (.getCommand message))
+   :command (get command->keyword (.getCommand message))
    :channel (.getChannel message)
    :note (note-to-string (.getData1 message))
    :velocity (.getData2 message)})
+
 
 (defn parse-event
   "Given an event, returns the parsed event data if the event does not represet metadata"
   [event]
   (let [message (.getMessage event)]
-    (if (instance? ShortMessage message)
-      (parse-message (cast ShortMessage message) event))))
+    (when (instance? ShortMessage message)
+      (parse-message event (cast ShortMessage message)))))
+
 
 (defn get-track-events
   "Given a track, returns a collection of its parsed events"
   [track]
-  (let [size (.size track)
+  (let [size (.size track) ; java doesn't let me treat track as an array
         index (range size)]
     (map #(parse-event (.get track %)) index)))
+
 
 (defn parse-tracks
   "Given an array of tracks, returns a collection of parsed events per track"
   [tracks]
   (map get-track-events tracks))
 
-(defn is-note
+
+(defn note?
   "Returns true if this event is note on or note off event"
   [parsed-event]
   (let [command (get parsed-event :command)]
     (or (= command :note-on) (= command :note-off))))
 
-(defn filter-notes
-  "Returns only the note-relevant events"
-  [parsed-events]
-  (filter is-note parsed-events))
 
 ;; note that i think this only works for 1-track files not counting the metadata track
-(defn parse-midi-file [filepath]
+(defn parse-midi-file
   "Given a midi file, outputs a human-readable collection of parsed event data"
+  [filepath]
   (let [sequence (MidiSystem/getSequence (io/file filepath))
         tracks (.getTracks sequence)
         resolution (.getResolution sequence) ;; gonna need later
-        parsed-tracks (parse-tracks tracks)]
-    (filter-notes (remove nil? (first (rest parsed-tracks))))))
+        parsed-midi (parse-tracks tracks)
+        [metadata & parsed-tracks] parsed-midi
+        piano-track (first parsed-tracks)]
+       (filter note? (remove nil? piano-track))))
