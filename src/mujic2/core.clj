@@ -14,4 +14,5 @@
   (->> (parser/parse-midi-file "/Users/thaisc/mujic/satie.mid")
        (sort-by :tick)
        chain/notes->successive-notes
+       (chain/generate-notes-sequence ["C5" 260] 10)
        pprint))

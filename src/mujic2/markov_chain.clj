@@ -60,3 +60,15 @@
       (empty? events) outer-map
       (not= command :note-on) (recur outer-map events)
       :else (recur (assoc-note-to-successive-notes outer-map tick note events) events))))
+
+(defn generate-notes-sequence
+  ""
+  [starting-note num-notes notes->successive-notes]
+  (loop [current-note starting-note
+         iteration num-notes
+         notes-sequence [current-note]]
+    (let [next-notes-set (get-in notes->successive-notes current-note)
+          random-next-note (first (shuffle next-notes-set))]
+      (if (= iteration 0)
+        notes-sequence
+        (recur random-next-note (dec iteration) (conj notes-sequence random-next-note))))))
