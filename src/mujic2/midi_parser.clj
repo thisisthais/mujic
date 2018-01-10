@@ -103,20 +103,19 @@
     [note duration]))
 
 (defn get-notes-and-durations
-  [tick now-events later-events]
-  (let [_ (prn "getting next notes for " now-events)]
-    (->> now-events
+  [tick next-note-events later-events]
+  (->> next-note-events
       (filter #(= (:command %) :note-on))
       (map #(get-note-duration % later-events)) ;; filter for later events
-      (set))))
+      (set)))
 
 (defn assoc-note-to-successive-notes
   [outer-map on-tick note events]
   (let [off-tick (find-off-tick note events on-tick)
-        later-events (filter #(>= (:tick %) off-tick) events)
-        now-events (filter #(= (:tick %) off-tick) events)
+        later-events (filter #(> (:tick %) off-tick) events)
+        next-note-events (filter #(= (:tick %) off-tick) events)
         duration (- off-tick on-tick)
-        next-notes-set (get-notes-and-durations off-tick now-events later-events)]
+        next-notes-set (get-notes-and-durations off-tick next-note-events later-events)]
     (update-in outer-map [note duration] #(set/union % next-notes-set))))
 
 (defn notes->successive-notes
