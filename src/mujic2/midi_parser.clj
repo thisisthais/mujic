@@ -97,9 +97,14 @@
       (not= command :note-on) (recur acc events) ;; this automatically filters non-note events
       :else (recur (assoc-end-tick acc tick note events) events))))
 
+(defn sub-and-round-up
+  "Subtracts timestamps and rounds up to nearest multiple of 10"
+  [off-tick on-tick]
+  (int (* 10 (Math/ceil (/ (- off-tick on-tick) 10)))))
+
 (defn get-note-duration
   [{:keys [note tick]} later-events]
-  (let [duration (- (find-off-tick note later-events tick) tick)]
+  (let [duration (sub-and-round-up (find-off-tick note later-events tick) tick)]
     [note duration]))
 
 (defn get-notes-and-durations
@@ -114,7 +119,7 @@
   (let [off-tick (find-off-tick note events on-tick)
         later-events (filter #(> (:tick %) off-tick) events)
         next-note-events (filter #(= (:tick %) off-tick) events)
-        duration (- off-tick on-tick)
+        duration (sub-and-round-up off-tick on-tick)
         next-notes-set (get-notes-and-durations off-tick next-note-events later-events)]
     (update-in outer-map [note duration] #(set/union % next-notes-set))))
 
