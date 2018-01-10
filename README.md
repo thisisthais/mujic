@@ -4,17 +4,12 @@ First, some notes about the MIDI format.
 
 This is how a MIDI file is structured, as far as I can tell:
 
-MIDI file
-
-  Sequence
-
-    Track[] *
-
-      Event[]
-
-        Message **
-
-          message as bytes
+    MIDI file
+      Sequence
+        Track[] *
+          Event[]
+            Message **
+              message as bytes
 
 * Note on track: The first track in a MIDI file is the header, which is metadata
 about the song . The other tracks correspond to instruments. For now, I'm only parsing
@@ -23,7 +18,7 @@ One annoying thing is that even though a track is a collection of events, Java
 doesn't let me treat it as an array. I have to use .get to get the events in a
 track, hence the weirdness of get-track-events.
 
-** Note on Message: In my parser, I cast the Message to a ShortMessage because it
+* Note on Message: In my parser, I cast the Message to a ShortMessage because it
 gives me handy functions for pulling out data in a useful format as opposed to
 raw bytes.
 
@@ -35,7 +30,7 @@ The full program will consist of three parts:
   with some more useful information. Here's a sample of the parsed MIDI file for a
   simple musical scale:
 
-  <img src="images/sample_parsed_midi.png" width="200" >
+  <img src="images/sample_parsed_midi.png" width="600" >
 
   Ticks are related to the timing of the command (ticks per quarter note). In a
   standard MIDI file, the timing information in an event represents the *delta* or
@@ -55,7 +50,7 @@ The full program will consist of three parts:
 
   Here's the output transition map for a simple musical scale:
 
-  <img src="images/sample_grouped_notes.png" width="200" >
+  <img src="images/sample_grouped_notes.png" width="600" >
 
 - Generator
 
