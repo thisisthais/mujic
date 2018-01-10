@@ -11,8 +11,10 @@
   note:duration in the song."
   [& args]
 
-  (->> (parser/parse-midi-file "/Users/thaisc/mujic/satie.mid")
-       (sort-by :tick)
-       chain/notes->successive-notes
-       (chain/generate-notes-sequence ["C5" 260] 10)
-       pprint))
+  (let [filepath "/Users/thaisc/mujic/satie.mid"
+        resolution (parser/get-rounded-resolution filepath)]
+    (->> (parser/parse-midi-file filepath)
+         (sort-by :tick)
+         chain/notes->successive-notes
+         (chain/generate-notes-sequence [60 260] 10)
+         pprint)))

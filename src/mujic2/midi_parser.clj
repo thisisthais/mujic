@@ -31,12 +31,13 @@
   {:tick (.getTick event)
    :command (get command->keyword (.getCommand message))
    :channel (.getChannel message)
-   :note (note-to-string (.getData1 message))
+   ;:note (note-to-string (.getData1 message))
+   :note (.getData1 message)
    :velocity (.getData2 message)})
 
 
 (defn parse-event
-  "Given an event, returns the parsed event data if the event does not represet metadata"
+  "Given an event, returns the parsed event data if the event does not represet metadata."
   [event]
   (let [message (.getMessage event)]
     (when (instance? ShortMessage message)
@@ -44,7 +45,7 @@
 
 
 (defn get-track-events
-  "Given a track, returns a collection of its parsed events"
+  "Given a track, returns a collection of its parsed events."
   [track]
   (let [size (.size track) ; java doesn't let me treat track as an array
         index (range size)]
@@ -52,21 +53,49 @@
 
 
 (defn parse-tracks
-  "Given an array of tracks, returns a collection of parsed events per track"
+  "Given an array of tracks, returns a collection of parsed events per track."
   [tracks]
   (map get-track-events tracks))
 
 
 (defn note?
-  "Returns true if this event is note on or note off event"
+  "Returns true if this event is note on or note off event."
   [parsed-event]
   (let [command (get parsed-event :command)]
     (or (= command :note-on) (= command :note-off))))
 
 
+(defn get-resolution
+  "Given a path to a MIDI file, returns its resolution."
+  [filepath]
+  (-> (io/file filepath)
+      MidiSystem/getSequence
+      .getResolution))
+
+
+(defn get-rounded-resolution
+  "Gets the resolution for the given MIDI file but rounds it up to the nearest
+  multiple of ten so that math with ticks works better (the same is done for ticks)"
+  [filepath]
+  (-> (get-resolution filepath)
+      (/ 10)
+      Math/ceil
+      (* 10)
+      int))
+
+
+(defn get-division
+  "Given a path to a MIDI file, returns its timing division."
+  [filepath]
+  (-> filepath
+      io/file
+      MidiSystem/getSequence
+      .getDivisionType))
+
+
 ;; note that i think this only works for 1-track files not counting the metadata track
 (defn parse-midi-file
-  "Given a midi file, outputs a human-readable collection of parsed event data"
+  "Given a midi file, outputs a human-readable collection of parsed event data."
   [filepath]
   (let [sequence (MidiSystem/getSequence (io/file filepath))
         tracks (.getTracks sequence)
