@@ -50,8 +50,8 @@
 
 (defn get-notes->successive-notes
   "Takes an list of midi events, ordered by ticks, and produces a map where the nested keys
-  are every note:duration pair in the song, and the value is a set of note:duration tuples
-  that succeed the note:duration keys in the song. Succession is calculated within a margin
+  are every [note duration] pair in the song, and the value is a set of [note duration] tuples
+  that succeed the [note duration] keys in the song. Succession is calculated within a margin
   of 10 ticks."
   [ordered-events]
   (loop [outer-map {}
@@ -63,13 +63,16 @@
 
 (defn get-random-note
   "Given a nested map where the keys are a note and a duration, returns a random
-  note:duration tuple from the map"
+  [note duration] tuple from the map."
   [notes->successive-notes]
   (let [rand-note (rand-nth (keys notes->successive-notes))]
     [rand-note (rand-nth (keys (get notes->successive-notes rand-note)))]))
 
 (defn get-next-notes
-  [ notes->successive-notes note-key]
+  "Given a nested map where the keys are a [note duration] tuple, try to get the value
+  which is a set of [note duration] tuples that follow the key [note duration] tuple
+  in the song. If the set is null, return a random set from the map."
+  [notes->successive-notes note-key]
   (let [next-notes-set (get-in  notes->successive-notes note-key)]
     (if next-notes-set
       next-notes-set
@@ -77,7 +80,9 @@
 
 
 (defn generate-notes-sequence
-  ""
+  "Given a starting note, a desired sequence length in number of notes, and a
+  nested transition map of [note duration] tuples to successive [note duration] tuples
+  in the input song, randomly walk the map to generate a new sequence of notes."
   [starting-note num-notes  notes->successive-notes]
   (loop [current-note starting-note
          iteration num-notes

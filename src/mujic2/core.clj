@@ -8,8 +8,8 @@
 (defn -main
   "Parses a Satie piano MIDI file and generates a nested map for the use in a
   markov chain. The map has nested keys, note and note duration. The value is
-  a set of all the note:duration tuples that immediatelly follow the prefix
-  note:duration in the song."
+  a set of all the [note duration] tuples that immediatelly follow the prefix
+  [note duration] in the song."
   [& args]
 
   (let [filepath "/Users/thaisc/mujic/satie.mid"
