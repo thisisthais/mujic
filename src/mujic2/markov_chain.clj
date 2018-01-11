@@ -61,13 +61,23 @@
       (not= command :note-on) (recur outer-map events)
       :else (recur (assoc-note-to-successive-notes outer-map tick note events) events))))
 
+(defn get-next-notes
+  [notes->succ note-key]
+  (let [next-notes-set (get-in notes->succ note-key)]
+    (if next-notes-set
+      next-notes-set
+      (let [rand-note (rand-nth (keys notes->succ))
+            rand-time (rand-nth (keys (get notes->succ rand-note)))]
+        (get-in notes->succ [rand-note rand-time])))))
+
+
 (defn generate-notes-sequence
   ""
-  [starting-note num-notes notes->successive-notes]
+  [starting-note num-notes notes->succ]
   (loop [current-note starting-note
          iteration num-notes
          notes-sequence [current-note]]
-    (let [next-notes-set (get-in notes->successive-notes current-note)
+    (let [next-notes-set (get-next-notes notes->succ current-note)
           random-next-note (first (shuffle next-notes-set))]
       (if (= iteration 0)
         notes-sequence

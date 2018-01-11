@@ -2,6 +2,7 @@
   (:gen-class)
   (:require [mujic2.midi-parser :as parser]
             [mujic2.markov-chain :as chain]
+            [mujic2.generator :as generator]
             [clojure.pprint :refer [pprint]]))
 
 (defn -main
@@ -16,5 +17,6 @@
     (->> (parser/parse-midi-file filepath)
          (sort-by :tick)
          chain/notes->successive-notes
-         (chain/generate-notes-sequence [60 260] 10)
-         pprint)))
+         (chain/generate-notes-sequence [60 260] 30)
+         (generator/parse-notes-sequence resolution)
+         print)))
