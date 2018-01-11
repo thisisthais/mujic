@@ -1,5 +1,6 @@
 (ns mujic2.midi-parser
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [clojure.pprint :refer [pprint]])
   (:import (javax.sound.midi MidiSystem Sequence Track MidiEvent MidiMessage ShortMessage)))
 
 
@@ -93,5 +94,6 @@
         resolution (.getResolution sequence) ;; gonna need later
         parsed-midi (parse-tracks tracks)
         [metadata & parsed-tracks] parsed-midi
-        piano-track (first parsed-tracks)]
+        ;piano-track (first parsed-tracks)
+        piano-track (nth parsed-midi 2)]
        (filter note? (remove nil? piano-track))))

@@ -21,7 +21,7 @@
   "Given a note-on event and the events at a tick after it, find the note's duration"
   [note-on-event later-events]
   (let [{:keys [note tick]} note-on-event
-        duration (sub-and-round-up (find-off-tick note later-events) tick)]
+        duration (Math/abs (sub-and-round-up (find-off-tick note later-events) tick))]
     [note duration]))
 
 
@@ -30,9 +30,20 @@
   map those notes to their duration, and put it in a set."
   [next-note-events later-events]
   (->> next-note-events
-      (filter #(= (:command %) :note-on))
-      (map #(get-note-duration % later-events)) ;; filter for later events
-      (set)))
+         (filter #(= (:command %) :note-on))
+         (map #(get-note-duration % later-events)) ;; filter for later events
+         (set)))
+
+
+(defn event-tick-within-delta?
+  [event pivot-tick]
+  (let [event-tick (:tick event)]
+    (<= (- event-tick 200) pivot-tick (+ event-tick 200))))
+
+
+(defn get-events-within-delta
+  [off-tick events]
+  (filter #(event-tick-within-delta? % off-tick) events))
 
 
 (defn assoc-note-to-successive-notes
@@ -42,8 +53,9 @@
   [outer-map on-tick note events]
   (let [off-tick (find-off-tick note events)
         later-events (filter #(> (:tick %) off-tick) events)
-        next-note-events (filter #(= (:tick %) off-tick) events)
-        duration (sub-and-round-up off-tick on-tick)
+        ;next-note-events (filter #(= (:tick %) off-tick) events)
+        next-note-events (get-events-within-delta off-tick events)
+        duration (Math/abs (sub-and-round-up off-tick on-tick))
         next-notes-set (get-notes-and-durations next-note-events later-events)]
     (update-in outer-map [note duration] #(set/union % next-notes-set))))
 
