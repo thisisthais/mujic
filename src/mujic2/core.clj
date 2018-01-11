@@ -13,10 +13,11 @@
   [& args]
 
   (let [filepath "/Users/thaisc/mujic/satie.mid"
-        resolution (parser/get-rounded-resolution filepath)]
-    (->> (parser/parse-midi-file filepath)
-         (sort-by :tick)
-         chain/notes->successive-notes
-         (chain/generate-notes-sequence [60 260] 30)
+        resolution (parser/get-rounded-resolution filepath)
+        parsed-midi (sort-by :tick (parser/parse-midi-file filepath))
+        notes->successive-notes (chain/get-notes->successive-notes parsed-midi)
+        starting-note (chain/get-random-note notes->successive-notes)]
+    (->> notes->successive-notes
+         (chain/generate-notes-sequence starting-note 30)
          (generator/parse-notes-sequence resolution)
          print)))
