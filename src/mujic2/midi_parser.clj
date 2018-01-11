@@ -32,7 +32,7 @@
   {:tick (.getTick event)
    :command (get command->keyword (.getCommand message))
    :channel (.getChannel message)
-   ;:note (note-to-string (.getData1 message))
+   ;:note (note-to-string (.getData1 message)) ;use for human reading notes
    :note (.getData1 message)
    :velocity (.getData2 message)})
 
@@ -95,5 +95,5 @@
         parsed-midi (parse-tracks tracks)
         [metadata & parsed-tracks] parsed-midi
         piano-track (first parsed-tracks)]
-        ;piano-track (nth parsed-midi 2)]
+        ;piano-track (nth parsed-midi 2)] ;use for more complex song but figure out piano track
        (filter note? (remove nil? piano-track))))

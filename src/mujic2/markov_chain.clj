@@ -30,9 +30,9 @@
   map those notes to their duration, and put it in a set."
   [next-note-events later-events]
   (->> next-note-events
-         (filter #(= (:command %) :note-on))
-         (map #(get-note-duration % later-events)) ;; filter for later events
-         (set)))
+       (filter #(= (:command %) :note-on))
+       (map #(get-note-duration % later-events)) ;; filter for later events
+       (set)))
 
 
 (defn event-tick-within-delta?
@@ -53,8 +53,8 @@
   [outer-map on-tick note events]
   (let [off-tick (find-off-tick note events)
         later-events (filter #(> (:tick %) off-tick) events)
-        ;next-note-events (filter #(= (:tick %) off-tick) events)
-        next-note-events (get-events-within-delta off-tick events)
+        next-note-events (filter #(= (:tick %) off-tick) events)
+        ;next-note-events (get-events-within-delta off-tick events) ;use for more complex song
         duration (Math/abs (sub-and-round-up off-tick on-tick))
         next-notes-set (get-notes-and-durations next-note-events later-events)]
     (update-in outer-map [note duration] #(set/union % next-notes-set))))
