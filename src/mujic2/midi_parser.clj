@@ -94,6 +94,6 @@
         resolution (.getResolution sequence) ;; gonna need later
         parsed-midi (parse-tracks tracks)
         [metadata & parsed-tracks] parsed-midi
-        ;piano-track (first parsed-tracks)
-        piano-track (nth parsed-midi 2)]
+        piano-track (first parsed-tracks)]
+        ;piano-track (nth parsed-midi 2)]
        (filter note? (remove nil? piano-track))))

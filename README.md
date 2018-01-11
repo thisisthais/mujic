@@ -52,6 +52,16 @@ The full program will consist of three parts:
 
   <img src="images/sample_grouped_notes.png" width="600" >
 
+  Then, the markov chain is used to generate a sequence of notes that
+  should be reminiscent of the input song. First, it picks a random note:duration tuple from the nested-keys in the mapping above as the starting note. Then, it randomly picks the next note from within the set of notes at that note:duration tuple. Then, it uses that new note as the key for the next set of notes and so on, until
+  the desired length sequence is made. Here's one such generated sequence based on the musical scale:
+
+  <img src="images/scale_based_sequence.png" width="600" >
+
+  The first random note was G5 for 260 ticks. Since this is just a simple musical scale, each note is only ever followed by one other note (the next note in the scale) in the entire inputted MIDI file. So the sequence progressed through the scale, G5 goes to A5 goes to B5 until... B5 goes to C6, the last note in the scale. No note succeeds C6, so the chain picks another random note from the map. In this case, it happened to be C6 again, so the map picks another random note, now G5, and the sequence is done.
+
 - Generator
 
-  Makes a new midi file using the Markov chain.
+  To actually play my sequence of notes, I'm using a REPL running live coding demo snippets from Overtone and Leipzig, music libraries written in Clojure. The accepted input is different from what my generated sequence looks like, so I need to do some parsing. Specifically, I need to separate the notes from the durations. Then I need to normalize the durations by the song's resolution and turn the MIDI notes into pitches.
+
+  I'm working on doing this sound-playing part outside of the REPL.
