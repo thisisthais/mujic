@@ -42,7 +42,7 @@
   [event]
   (let [message (.getMessage event)]
     (when (instance? ShortMessage message)
-      (parse-message event (cast ShortMessage message)))))
+      (parse-message event message))))
 
 
 (defn get-track-events
