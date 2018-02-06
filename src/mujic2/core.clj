@@ -12,7 +12,7 @@
   [note duration] in the song."
   [& args]
 
-  (let [filepath "/Users/thaisc/mujic/satie.mid"
+  (let [filepath (str (System/getProperty "user.dir") "/satie.mid")
         resolution (parser/get-rounded-resolution filepath)
         parsed-midi (sort-by :tick (parser/parse-midi-file filepath))
         notes->successive-notes (chain/get-notes->successive-notes parsed-midi)
